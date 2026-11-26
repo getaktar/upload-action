@@ -18,6 +18,13 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      # A real S3 server for the integration tests. MinIO no longer publishes
+      # binaries or images itself; Homebrew (on the runner image) still builds it.
+      - name: Install MinIO
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew install minio
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
       - run: pnpm install --frozen-lockfile
       - name: dist/index.js matches the source
         run: |
