@@ -1,0 +1,57 @@
+name: Self-test
+
+# Runs the action from this commit against a MinIO on the runner, including
+# the pull request comment.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Start MinIO
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew install minio
+          mkdir -p "$RUNNER_TEMP/minio"
+          MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin nohup minio server "$RUNNER_TEMP/minio" --address 127.0.0.1:9000 --quiet > /dev/null 2>&1 &
+          for i in $(seq 1 50); do curl -sf http://127.0.0.1:9000/minio/health/live && break; sleep 0.2; done
+      - run: npm install --no-save @noble/hashes@2.4.0 && node scripts/minio-bucket.ts http://127.0.0.1:9000 self-test
+      - name: Files to upload
+        run: |
+          mkdir -p shots
+          printf '\x89PNG\r\n\x1a\n' > shots/home.png
+          echo "self-test $GITHUB_RUN_ID" > report.txt
+      - id: upload
+        uses: ./
+        with:
+          files: |
+            shots/*.png
+            report.txt
+          provider: minio
+          endpoint: http://127.0.0.1:9000
+          bucket: self-test
+          public-url: http://127.0.0.1:9000/self-test
+          access-key-id: minioadmin
+          secret-access-key: minioadmin
+          path: "{repo}/{run}/{filename}-{short}.{ext}"
+          comment: ${{ github.event_name == 'pull_request' }}
+          comment-title: Self-test uploads
+      - name: Check the outputs
+        env:
+          URLS: ${{ steps.upload.outputs.urls }}
+          URL: ${{ steps.upload.outputs.url }}
+        run: |
+          echo "$URLS"
+          test "$(echo "$URLS" | wc -l)" -eq 2
+          echo "$URL" | grep -E '^http://127\.0\.0\.1:9000/self-test/upload-action/[0-9]+/home-[0-9A-Za-z]{7}\.png$'
