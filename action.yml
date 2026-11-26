@@ -1,0 +1,62 @@
+name: Upload to S3, R2 or B2 with Aktar
+description: Upload build output, test screenshots or any file to your own S3, Cloudflare R2 or Backblaze B2 bucket and get the links.
+author: Aktar
+branding:
+  icon: upload-cloud
+  color: blue
+inputs:
+  files:
+    description: Files to upload, as paths or glob patterns relative to the workspace, one per line (or comma separated).
+    required: true
+  provider:
+    description: "r2, s3, b2, spaces, minio or other. Decides the region default, path-style addressing and whether names are reserved with conditional writes."
+    default: other
+  endpoint:
+    description: The S3 endpoint, such as https://s3.us-east-1.amazonaws.com. For Cloudflare R2 you can set account-id instead.
+  account-id:
+    description: Cloudflare account ID, to use R2's endpoint without spelling it out.
+  bucket:
+    description: The bucket's name.
+    required: true
+  region:
+    description: The bucket's region. Defaults to us-east-1 for Amazon S3 and auto elsewhere.
+  public-url:
+    description: The address links start with, such as https://files.example.com or the bucket's public URL.
+    required: true
+  access-key-id:
+    description: Access key ID. Keep it in a repository secret.
+    required: true
+  secret-access-key:
+    description: Secret access key. Keep it in a repository secret.
+    required: true
+  session-token:
+    description: Session token, for temporary credentials (for example from aws-actions/configure-aws-credentials).
+  path:
+    description: "Where files go in the bucket. Variables: {repo} {branch} {sha} {run} {attempt} {year} {month} {day} {date} {time} {filename} {ext} {short} {uuid} {random} {sha256}."
+    default: "{year}/{month}/{short}.{ext}"
+  path-style:
+    description: Use path-style addressing (https://endpoint/bucket/key). On by default for MinIO.
+  fail-on-empty:
+    description: Fail when no file matches.
+    default: "true"
+  comment:
+    description: Post the links (images embedded) as a comment on the pull request, updated on every run. Needs "pull-requests write" permission.
+    default: "false"
+  comment-title:
+    description: Heading of the comment and of the job summary.
+    default: Uploaded files
+  github-token:
+    description: Token for the pull request comment.
+    default: ${{ github.token }}
+outputs:
+  urls:
+    description: The links, one per line, in the order the files were found.
+  url:
+    description: The first link.
+  markdown:
+    description: Markdown for every file, images embedded.
+  json:
+    description: "A JSON array of { file, name, url, key, size }."
+runs:
+  using: node24
+  main: dist/index.js

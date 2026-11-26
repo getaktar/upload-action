@@ -1,0 +1,24 @@
+{
+  "name": "aktar-upload-action",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GitHub Action: upload files to your own S3, Cloudflare R2 or Backblaze B2 bucket and get the links.",
+  "license": "MIT",
+  "author": "Mert Topuz",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --target=node24 --format=esm --minify --legal-comments=none --outfile=dist/index.js",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "check": "pnpm build && pnpm test && node scripts/check-ported.mjs",
+    "check:ported": "node scripts/check-ported.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "esbuild": "0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0"
+  },
+  "packageManager": "pnpm@12.11.2"
+}
